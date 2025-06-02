@@ -129,3 +129,42 @@ class RegistrationPage(QDialog):
         lbl = QLabel(text)
         lbl.setFont(font)
         return lbl
+
+    def register(self):
+        if not self.terms_check.isChecked():
+            messagebox.showerror("Error", "Please agree to the Terms & Conditions")
+            return
+
+        data = {
+    "type": "register",
+    "first_name": self.fname_entry.text(),
+    "last_name": self.lname_entry.text(),
+    "email": self.email_entry.text(),
+    "contact": self.contact_entry.text(),
+    "password": self.password_entry.text(),
+    "confirm_password": self.confirm_pass_entry.text(),
+    "security_question": self.security_ques_combo.currentText(),
+    "security_answer": self.ans_entry.text()
+}
+
+        try:
+        
+            client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            client.connect(("192.168.1.36", 5050))
+
+            json_data = json.dumps(data)
+            client.sendall(json_data.encode('utf-8'))
+
+            response = client.recv(1024).decode('utf-8')
+            client.close()
+
+            messagebox.showinfo("Server Response", response)
+
+        except ConnectionRefusedError:
+            messagebox.showerror("Connection Error", "Cannot connect to the server. Please make sure the server is running.")
+
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    window = RegistrationPage()
+    window.show()
+    sys.exit(app.exec())
