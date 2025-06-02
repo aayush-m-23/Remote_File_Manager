@@ -75,3 +75,57 @@ class RegistrationPage(QDialog):
             "Your Pet Name",
             "Your Favourite Movie"
         ])
+        form_layout.addWidget(self.security_ques_combo, 4, 1, 1, 3)
+
+        form_layout.addWidget(self.make_label("Security Answer:", font_label), 5, 0)
+        self.ans_entry = QLineEdit()
+        self.ans_entry.setPlaceholderText("Answer to your security question")
+        form_layout.addWidget(self.ans_entry, 5, 1, 1, 3)
+
+        main_layout.addLayout(form_layout)
+
+        self.terms_check = QCheckBox("I agree to the Terms & Conditions")
+        main_layout.addWidget(self.terms_check)
+
+        btn_layout = QHBoxLayout()
+        btn_layout.addStretch()
+
+        self.register_btn = QPushButton("Register")
+        self.register_btn.setFixedWidth(120)
+        self.register_btn.clicked.connect(self.register)
+        btn_layout.addWidget(self.register_btn)
+
+        self.cancel_btn = QPushButton("Cancel")
+        self.cancel_btn.setFixedWidth(120)
+        self.cancel_btn.clicked.connect(self.close)
+        btn_layout.addWidget(self.cancel_btn)
+
+        main_layout.addLayout(btn_layout)
+
+        self.setStyleSheet("""
+            QLabel {
+                font-size: 13px;
+            }
+            QLineEdit, QComboBox {
+                font-size: 13px;
+                padding: 6px;
+            }
+            QPushButton {
+                font-size: 14px;
+                padding: 8px;
+                background-color: #2E8B57;
+                color: white;
+                border-radius: 5px;
+            }
+            QPushButton:hover {
+                background-color: #246b45;
+            }
+            QCheckBox {
+                font-size: 12px;
+            }
+        """)
+
+    def make_label(self, text, font):
+        lbl = QLabel(text)
+        lbl.setFont(font)
+        return lbl
