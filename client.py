@@ -193,3 +193,52 @@ class RemoteFileManager(QWidget):
             QMessageBox.information(self, "Download Complete", f"{filename} saved as {save_path}")
         except Exception as e:
             QMessageBox.critical(self, "Download Error", str(e))
+
+    def delete_file(self):
+        filename = self.get_selected_filename()
+        if not filename:
+            return
+
+        reply = QMessageBox.question(self, "Confirm Delete", f"Delete '{filename}'?",
+                                     QMessageBox.Yes | QMessageBox.No)
+        if reply != QMessageBox.Yes:
+            return
+
+        response = self.send_json_command({"action": "delete", "filename": filename})
+        if response and response.get("status") == "ok":
+            QMessageBox.information(self, "Delete", f"'{filename}' deleted.")
+            self.refresh_file_list()
+        else:
+            QMessageBox.warning(self, "Delete Error", str(response))
+
+    def rename_file(self):
+        filename = self.get_selected_filename()
+        if not filename:
+            return
+
+        new_name, ok = QFileDialog.getSaveFileName(self, "Rename File", filename)
+        if not ok or not new_name:
+            return
+
+        new_name = os.path.basename(new_name)
+        response = self.send_json_command({"action": "rename", "old_name": filename, "new_name": new_name})
+        if response and response.get("status") == "ok":
+            QMessageBox.information(self, "Rename", f"'{filename}' renamed to '{new_name}'.")
+            self.refresh_file_list()
+        else:
+            QMessageBox.warning(self, "Rename Error", str(response))
+
+    def search_files(self):
+        query = self.search_bar.text().strip()
+        if not query:
+            return
+
+        response = self.send_json_command({"action": "search", "query": query})
+        if response and response.get("status") == "ok":
+            self.file_table.setRowCount(0)
+            for filename in response["files"]:
+                row = self.file_table.rowCount()
+                self.file_table.insertRow(row)
+                self.file_table.setItem(row, 0, QTableWidgetItem(filename))
+        else:
+            QMessageBox.warning(self, "Search Error", str(response))
