@@ -134,3 +134,46 @@ def handle_file_command(client_socket, command):
     except Exception as e:
         client_socket.send(json.dumps({"status": "error", "message": str(e)}).encode())
 
+def handle_client(client_socket, address):
+    print(f"[NEW CONNECTION] {address} connected.")
+    try:
+        while True:
+            data = client_socket.recv(BUFFER_SIZE).decode()
+            if not data:
+                break
+            try:
+                command = json.loads(data)
+            except json.JSONDecodeError:
+                client_socket.send(json.dumps({"status": "error", "message": "Invalid JSON"}).encode())
+                continue
+
+            if command.get("type") == "register":
+                response = insert_user(command)
+                client_socket.send(json.dumps(response).encode())
+            elif command.get("type") == "login":
+                response = validate_login(command)
+                client_socket.send(json.dumps(response).encode())
+            elif command.get("action"):
+                handle_file_command(client_socket, command)
+            else:
+                client_socket.send(json.dumps({"status": "error", "message": "Invalid request"}).encode())
+
+    except Exception as e:
+        print(f"[ERROR] {e}")
+    finally:
+        client_socket.close()
+        print(f"[DISCONNECTED] {address} disconnected.")
+
+def start_server():
+    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server.bind((SERVER_HOST, SERVER_PORT))
+    server.listen(5)
+    print(f"[LISTENING] Server is listening on {SERVER_HOST}:{SERVER_PORT}")
+    while True:
+        client_socket, address = server.accept()
+        thread = threading.Thread(target=handle_client, args=(client_socket, address))
+        thread.start()
+        print(f"[ACTIVE CONNECTIONS] {threading.active_count() - 1}")
+
+if __name__ == "__main__":
+    start_server()
