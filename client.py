@@ -122,3 +122,74 @@ class RemoteFileManager(QWidget):
                 row = self.file_table.rowCount()
                 self.file_table.insertRow(row)
                 self.file_table.setItem(row, 0, QTableWidgetItem(filename))
+
+    def upload_file(self):
+        filepath = QFileDialog.getOpenFileName(self, "Select File to Upload")[0]
+        if not filepath:
+            return
+
+        filename = os.path.basename(filepath)
+        filesize = os.path.getsize(filepath)
+
+        try:
+            s = socket.socket()
+            s.connect((SERVER_HOST, SERVER_PORT))
+            s.send(json.dumps({"action": "upload", "filename": filename, "filesize": filesize}).encode())
+
+            ready = json.loads(s.recv(1024).decode())
+            if ready.get("status") != "ready":
+                QMessageBox.critical(self, "Upload Error", f"Server error: {ready}")
+                s.close()
+                return
+
+            with open(filepath, "rb") as f:
+                while True:
+                    data = f.read(BUFFER_SIZE)
+                    if not data:
+                        break
+                    s.sendall(data)
+
+            response = json.loads(s.recv(1024).decode())
+            s.close()
+
+            if response.get("status") == "ok":
+                QMessageBox.information(self, "Upload Complete", f"{filename} uploaded.")
+                self.refresh_file_list()
+            else:
+                QMessageBox.warning(self, "Upload Failed", str(response))
+
+        except Exception as e:
+            QMessageBox.critical(self, "Upload Error", str(e))
+
+    def get_selected_filename(self):
+        selected = self.file_table.selectedItems()
+        if selected:
+            return selected[0].text()
+        QMessageBox.warning(self, "Selection Error", "Please select a file.")
+        return None
+
+    def download_file(self):
+        filename = self.get_selected_filename()
+        if not filename:
+            return
+
+        save_path = QFileDialog.getSaveFileName(self, "Save File As", filename)[0]
+        if not save_path:
+            return
+
+        try:
+            s = socket.socket()
+            s.connect((SERVER_HOST, SERVER_PORT))
+            s.send(json.dumps({"action": "download", "filename": filename}).encode())
+
+            with open(save_path, "wb") as f:
+                while True:
+                    data = s.recv(BUFFER_SIZE)
+                    if not data:
+                        break
+                    f.write(data)
+
+            s.close()
+            QMessageBox.information(self, "Download Complete", f"{filename} saved as {save_path}")
+        except Exception as e:
+            QMessageBox.critical(self, "Download Error", str(e))
