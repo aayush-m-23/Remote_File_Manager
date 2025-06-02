@@ -242,3 +242,37 @@ class RemoteFileManager(QWidget):
                 self.file_table.setItem(row, 0, QTableWidgetItem(filename))
         else:
             QMessageBox.warning(self, "Search Error", str(response))
+
+    def read_file(self):
+        filename = self.get_selected_filename()
+        if not filename:
+            return
+
+        response = self.send_json_command({"action": "read", "filename": filename})
+        if not response or response.get("status") != "ok":
+            QMessageBox.critical(self, "Read Error", f"Failed to read file: {response}")
+            return
+
+        content = response.get("content", "")
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle(f"Read File: {filename}")
+        dialog.resize(600, 400)
+
+        layout = QVBoxLayout(dialog)
+        text_edit = QTextEdit()
+        text_edit.setPlainText(content)
+        text_edit.setReadOnly(True)
+        layout.addWidget(text_edit)
+
+        btn_box = QDialogButtonBox(QDialogButtonBox.Close)
+        btn_box.rejected.connect(dialog.reject)
+        layout.addWidget(btn_box)
+
+        dialog.exec()
+
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    window = RemoteFileManager()
+    window.show()
+    sys.exit(app.exec())
