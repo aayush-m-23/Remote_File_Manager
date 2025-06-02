@@ -79,3 +79,48 @@ class LoginWindow(QMainWindow):
         layout.addWidget(register_btn)
 
         self.login_frame.setLayout(layout)
+
+     def login(self):
+        email = self.username_input.text()
+        password = self.password_input.text()
+
+
+        if email == "" or password == "":
+            messagebox.showerror("Error", "All fields are required")
+            return
+
+        login_data = {
+            "type": "login",
+            "email": email,
+            "password": password
+        }
+
+        try:
+            client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            client.connect((SERVER_HOST, SERVER_PORT))
+
+            json_data = json.dumps(login_data)
+            client.sendall(json_data.encode('utf-8'))
+
+            response = client.recv(1024).decode('utf-8')
+            client.close()
+
+            if "successful" in response.lower():
+                messagebox.showinfo("Login", response)
+                self.register_dialog = RemoteFileManager()
+                self.register_dialog.show()
+            else:
+                messagebox.showerror("Login Failed", response)
+
+        except ConnectionRefusedError:
+            messagebox.showerror("Connection Error", "Cannot connect to the server. Please check the network/server.")
+
+    def open_register(self):
+        self.register_dialog = RegistrationPage(self)
+        self.register_dialog.exec()
+
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    window = LoginWindow()
+    window.show()
+    sys.exit(app.exec())
