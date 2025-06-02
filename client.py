@@ -89,3 +89,36 @@ class RemoteFileManager(QWidget):
 
         main_layout.addWidget(left_panel, 1)
         main_layout.addWidget(right_panel, 3)
+
+    def connect_to_server(self):
+        try:
+            self.sock = socket.socket()
+            self.sock.connect((SERVER_HOST, SERVER_PORT))
+        except Exception as e:
+            QMessageBox.critical(self, "Connection Error", str(e))
+            self.close()
+
+    def send_command(self, cmd):
+        try:
+            self.sock.send(cmd.encode())
+        except Exception as e:
+            QMessageBox.critical(self, "Command Error", str(e))
+
+
+    def send_json_command(self, command_dict):
+        try:
+            self.sock.send(json.dumps(command_dict).encode())
+            response = self.sock.recv(BUFFER_SIZE).decode()
+            return json.loads(response)
+        except Exception as e:
+            QMessageBox.critical(self, "Error", str(e))
+            return None
+
+    def refresh_file_list(self):
+        response = self.send_json_command({"action": "list"})
+        if response and response["status"] == "ok":
+            self.file_table.setRowCount(0)
+            for filename in response["files"]:
+                row = self.file_table.rowCount()
+                self.file_table.insertRow(row)
+                self.file_table.setItem(row, 0, QTableWidgetItem(filename))
